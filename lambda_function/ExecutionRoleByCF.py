@@ -50,34 +50,34 @@ def lambda_handler(event, context):
         
         print(student_id_2)
         
-        # i += 1
+        i += 1
     
-        # cf_client = boto3.client('cloudformation',
-        # aws_access_key_id = access_key_2,
-        # aws_secret_access_key = secret_key_2,
-        # # aws_session_token = '',
-        # region_name = 'ap-southeast-1')
+        cf_client = boto3.client('cloudformation',
+        aws_access_key_id = access_key_2,
+        aws_secret_access_key = secret_key_2,
+        # aws_session_token = '',
+        region_name = 'ap-southeast-1')
         
-        # response = cf_client.create_stack(
-        #     StackName = 'AWSCloudFormationStackSetExecutionRoleStack',
-        #     TemplateURL = 'https://s3.amazonaws.com/fyp-cloudformation-template/AWSCloudFormationStackSetExecutionRole.yml',
-        #     Capabilities = [
-        #         'CAPABILITY_NAMED_IAM'
-        #         ]
-        # )
+        response = cf_client.create_stack(
+            StackName = 'AWSCloudFormationStackSetExecutionRoleStack',
+            TemplateURL = 'https://s3.amazonaws.com/fyp-cloudformation-template/AWSCloudFormationStackSetExecutionRole.yml',
+            Capabilities = [
+                'CAPABILITY_NAMED_IAM'
+                ]
+        )
         
-        # response = dynamodb_client.delete_item(
-        #     TableName = 'Students_Key',
-        #     Key = {
-        #         'Student_id': {
-        #             'N': student_id_2
-        #         }
-        #     }
-        # )
+        response = dynamodb_client.delete_item(
+            TableName = 'Students_Key',
+            Key = {
+                'Student_id': {
+                    'N': student_id_2
+                }
+            }
+        )
         
         print('Delete completed')
         
-        i += 1
+        # i += 1
 
     return {
         'statusCode': 200,
