@@ -3,6 +3,7 @@ Cloud 9 Setup
 git clone https://github.com/fungvsyan/FYP.git
 
 cd FYP/
+. /deployment.sh
 
 after that you may need to run  
 source venv/bin/activate  
