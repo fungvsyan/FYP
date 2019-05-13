@@ -28,7 +28,7 @@ def lambda_handler(event, context):
     while i < totalStundent:
         studentAccessKey = dynamodb_response['Items'][i]['Access_key']
         studentSecretKey = dynamodb_response['Items'][i]['Secret_key']
-        studentId = dynamodb_response['Items'][i]['Student_id']
+        studentId = dynamodb_response['Items'][i]['StudentID']
 
         student_id = str(studentId)
 
