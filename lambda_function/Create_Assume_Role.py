@@ -12,13 +12,13 @@ def lambda_handler(event, context):
     jsonFileReader = json_object['Body'].read()
     jsonDict = json.loads(jsonFileReader)
 
-    table = dynamodb.Table('fyp-demo-stack-StudentKeyTable/*')
+    table = dynamodb.Table('fyp-demo-stack-StudentKeyTable')
     table.put_item(Item=jsonDict)
 
     dynamodb_client = boto3.client('dynamodb')
 
     dynamodb_response = dynamodb_client.scan(
-        TableName='fyp-demo-stack-StudentKeyTable/*'
+        TableName='fyp-demo-stack-StudentKeyTable'
     )
 
     totalStundent = (dynamodb_response["Count"])
@@ -75,7 +75,7 @@ def lambda_handler(event, context):
         accountId = sts_response['Account']
 
         response = dynamodb_client.put_item(
-            TableName='fyp-demo-stack-AssumedAccountTable/*',
+            TableName='fyp-demo-stack-AssumedAccountTable',
             Item={
                 'StudentID': {
                     'N': student_id_2
@@ -87,7 +87,7 @@ def lambda_handler(event, context):
         )
 
         response = dynamodb_client.delete_item(
-            TableName='fyp-demo-stack-StudentKeyTable/*',
+            TableName='fyp-demo-stack-StudentKeyTable',
             Key={
                 'StudentID': {
                     'N': student_id_2
