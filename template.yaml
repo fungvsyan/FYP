@@ -52,6 +52,16 @@ Conditions:
     - !Ref EnableVersioning
     - 'true'
 
+  InstanceTypeParameter:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t1.micro
+      - m1.small
+      - m1.large
+    Description: 'Enter t2.micro, t1.micro, m1.small, or m1.large. Default is t2.micro.'
+
 Resources:
 
   LambdaRole:
@@ -200,6 +210,72 @@ Resources:
       Runtime: python3.7
       Timeout: 90
 
+  AWSElasticBeanstalkRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: BeanstalkECSAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 's3:PutObject'
+                Resource: 'arn:aws:s3:::elasticbeanstalk-*/resources/environments/logs/*'
+        - PolicyName: Allow-My-S3-Bucket
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 's3:*'
+                Resource:
+                  - 'arn:aws:s3:::fyp-web-source-bucket-*'
+  BeanstalkInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref AWSElasticBeanstalkRole
+  Application:
+    Type: 'AWS::ElasticBeanstalk::Application'
+    Properties:
+      Description: AWS Elastic Beanstalk Application
+      ApplicationVersions:
+        - VersionLabel: Initial Version
+          Description: Version 1.0
+          SourceBundle:
+            S3Bucket: !Join 
+              - '-'
+              - - fyp-web-source-bucket
+            S3Key: FYP.zip
+      ConfigurationTemplates:
+        - TemplateName: Beanstalk-Application
+          Description: Beanstalk Application Version 1.0 - with SSH access
+          SolutionStackName: 64bit Amazon Linux 2018.03 v2.8.9 running PHP 7.2
+          OptionSettings:
+            - Namespace: 'aws:autoscaling:launchconfiguration'
+              OptionName: InstanceType
+              Value: !Ref InstanceTypeParameter
+            - Namespace: 'aws:autoscaling:launchconfiguration'
+              OptionName: IamInstanceProfile
+              Value: !Ref BeanstalkInstanceProfile
+  Environment:
+    Type: 'AWS::ElasticBeanstalk::Environment'
+    Properties:
+      ApplicationName: !Ref Application
+      Description: AWS Elastic Beanstalk Environment running Beanstalk Application
+      TemplateName: Beanstalk-Application
+      VersionLabel: Initial Version
+
 Outputs:
 
   BucketName:
@@ -215,3 +291,8 @@ Outputs:
     Value: !Ref 'StudentKeyTable'
     Description: Table name of the newly created DynamoDB table
     
+  URL:
+    Description: URL of the AWS Elastic Beanstalk Environment
+    Value: !GetAtt 
+      - Environment
+      - EndpointURL
