@@ -41,6 +41,16 @@ Parameters:
       - 'true'
       - 'false'
     Default: 'false'
+    
+  InstanceTypeParameter:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t1.micro
+      - m1.small
+      - m1.large
+    Description: 'Enter t2.micro, t1.micro, m1.small, or m1.large. Default is t2.micro.'
 
 Mappings: {}
 
@@ -51,16 +61,6 @@ Conditions:
   UseVersioning: !Equals
     - !Ref EnableVersioning
     - 'true'
-
-  InstanceTypeParameter:
-    Type: String
-    Default: t2.micro
-    AllowedValues:
-      - t2.micro
-      - t1.micro
-      - m1.small
-      - m1.large
-    Description: 'Enter t2.micro, t1.micro, m1.small, or m1.large. Default is t2.micro.'
 
 Resources:
 
