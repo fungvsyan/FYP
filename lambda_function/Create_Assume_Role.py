@@ -59,7 +59,7 @@ def lambda_handler(event, context):
 
         response = cf_client.create_stack(
             StackName='AWSCloudFormationStackSetExecutionRoleStack',
-            TemplateURL='https://s3-ap-southeast-1.amazonaws.com/cf-test-170245996/AWSCloudFormationStackSetExecutionRole.yml',
+            TemplateURL='https://s3.amazonaws.com/fyp-cloudformation-template/AWSCloudFormationStackSetExecutionRole.yml',
             DisableRollback=False,
             TimeoutInMinutes=2,
             Capabilities=[
