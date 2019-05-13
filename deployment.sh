@@ -3,7 +3,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 aws s3api create-bucket --bucket fyp-web-source-bucket --region ap-southeast-1 --create-bucket-configuration LocationConstraint=ap-southeast-1
-cp FYP.zip s3://fyp-web-source-bucket/FYP.zip
+aws s3 --region ap-southeast-1 cp FYP.zip s3://fyp-web-source-bucket
 
 aws s3api create-bucket --bucket fyp-demo-bucket --region ap-southeast-1 --create-bucket-configuration LocationConstraint=ap-southeast-1
 cp lambda_function/* venv/lib/python3.6/dist-packages
