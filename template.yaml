@@ -1,22 +1,217 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-Description: An AWS Serverless Specification template describing your function.
+Description: FYP
+
+Parameters:
+    
+  FypDemoKeyCollectionBucket:
+    Description: >-
+      Must contain only lowercase letters, numbers, periods (.), and hyphens
+      (-),Cannot end in numbers
+    Type: String
+    Default: fyp-demo-key-collection-bucket
+  EnableGlacierLifeCycle:
+    Description: enable archiving to Glacier Storage
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+  GlacierLifeCycleTransitionInDays:
+    Description: Define how many days objects should exist before being moved to Glacier
+    Type: String
+    Default: '100'
+  EnableVersioning:
+    Description: enable versioning
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+  LifeCyclePrefix:
+    Description: >-
+      Must contain only lowercase letters, numbers, periods (.), and hyphens
+      (-),Cannot end in numbers
+    Type: String
+    Default: Archive
+  EnableStaticSite:
+    Description: enable static site
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+
+Mappings: {}
+
+Conditions:
+  UseGlacierLifeCycle: !Equals
+    - !Ref EnableGlacierLifeCycle
+    - 'true'
+  UseVersioning: !Equals
+    - !Ref EnableVersioning
+    - 'true'
+
 Resources:
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AdminRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Path: /
+
+  StackSetAdministrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AWSCloudFormationStackSetAdministrationRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: AssumeRole-AWSCloudFormationStackSetExecutionRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource:
+                  - "arn:aws:iam::*:role/AWSCloudFormationStackSetExecutionRole"
+    
+  FypKeyCollectionBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Ref FypDemoKeyCollectionBucket
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+            - '*'
+            AllowedMethods:
+            - GET
+            - POST
+            - PUT
+            AllowedHeaders:
+            - Authorization
+            MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          - Id: GlacierRule
+            Prefix: !Ref LifeCyclePrefix
+            Status: Enabled
+            ExpirationInDays: '365'
+            Transitions:
+              - TransitionInDays: !Ref GlacierLifeCycleTransitionInDays
+                StorageClass: Glacier
+      VersioningConfiguration: !If
+        - UseVersioning
+        - Status: Enabled
+        - !Ref 'AWS::NoValue'
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Function: !GetAtt ExecutionRoleByCF.Arn
+    DeletionPolicy: Retain
+    
+  BucketPermission:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref ExecutionRoleByCF
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref 'AWS::AccountId'
+      SourceArn: !Sub 'arn:aws:s3:::${FypDemoKeyCollectionBucket}'
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FypDemoKeyCollectionBucket
+      PolicyDocument:
+        Id: Stmt1488493308547
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Stmt1488493308547
+            Effect: Allow
+            Action: 's3:*'
+            Principal:
+              AWS: !Join ['', ['arn:aws:iam::', !Ref 'AWS::AccountId', ':user/Teacher']]
+            Resource: !Join ['', ['arn:aws:s3:::', !Ref FypDemoKeyCollectionBucket, '/*']]
+
+  StudentKeyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'fyp-demo-stack-StudentKeyTable'
+      AttributeDefinitions:
+      - AttributeName: 'StudentID'
+        AttributeType: 'N'
+      KeySchema:
+      - AttributeName: 'StudentID'
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+        
+  AssumedAccountTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'fyp-demo-stack-AssumedAccountTable'
+      AttributeDefinitions:
+      - AttributeName: 'StudentID'
+        AttributeType: 'N'
+      KeySchema:
+      - AttributeName: 'StudentID'
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
 
   ExecutionRoleByCF:
     Type: 'AWS::Serverless::Function'
     Properties:
       CodeUri: venv/lib/python3.6/dist-packages
-      Handler: ExecutionRoleByCF_function.lambda_handler
+      Handler: Create_Assume_Role.lambda_handler
       MemorySize: 128
+      Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
-      Timeout: 60
+      Timeout: 90
       
   StackSetInstances:
     Type: 'AWS::Serverless::Function'
     Properties:
       CodeUri: venv/lib/python3.6/dist-packages
-      Handler: StackSetInstances_function.lambda_handler
+      Handler: Stack_Set_Instances.lambda_handler
       MemorySize: 128
       Runtime: python3.7
-      Timeout: 60
+      Timeout: 90
+
+Outputs:
+
+  BucketName:
+    Value: !Ref FypDemoKeyCollectionBucket
+    Description: Name of the sample Amazon S3 bucket.
+  BucketArn:
+    Value: !GetAtt
+      - FypKeyCollectionBucket
+      - Arn
+    Description: Name of the Amazon S3 bucket
+
+  TableName:
+    Value: !Ref 'StudentKeyTable'
+    Description: Table name of the newly created DynamoDB table
+    
