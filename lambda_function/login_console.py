@@ -51,7 +51,7 @@ def run(account_id, role_name, duration):
     signin_token = generate_sign_in_token(tmp_credentials)
     return generate_signed_url(signin_token)
 
-account_id = 321170204940
+account_id = 
 role_name = "AWSCloudFormationStackSetExecutionRole"
 #external_id = ""
 
